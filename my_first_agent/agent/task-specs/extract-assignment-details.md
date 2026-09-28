@@ -65,3 +65,4 @@ Return an extraction finding for each provided assignment item containing:
 - the source evidence used for each finding;
 - any conflict, uncertainty, or missing-detail note; and
 - the recommended next workflow destination: T3 — Add or update task record, T4 — Ask student to clarify details, or T5 — Mark item unclear for human review.
+Add inference configuration and tool boundaries
