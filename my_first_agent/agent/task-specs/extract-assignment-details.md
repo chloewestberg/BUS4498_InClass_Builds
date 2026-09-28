@@ -2,10 +2,17 @@
 
 ## Basic Information
 
-```text
+```yaml
 task_id: T2
 task_name: Extract assignment details
 task_owner: BUS 4498 student
+
+# Agent Inference Configuration
+Provider: Groq
+Model: "openai/gpt-oss-20b"
+Role: Locate assignment references, interpret due-date evidence, identify status evidence, and reconcile conflicting details
+Maximum inference requests per task run: 8
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the BUS 4498 student.
 ```
 
 ## 1. Task Goal
@@ -20,6 +27,24 @@ Produce an evidence-backed candidate record for each assignment item in the cour
 - **Source:** T1 — Receive course information.
 
 ## 3. Tools, Permissions, and Boundaries
+
+### Task-Wide Limits
+
+- **Total task timeout:** 10 minutes per task run, including inference requests, tool calls, retries, and waiting.
+- **Maximum tool calls:** 6 total calls across all tools during one task run; retries count toward this total.
+
+### Tool 1
+
+- **Tool name:** `inspect_course_input`
+- **Input:** `course information item`
+- **Output:** `extraction finding`
+- **Implementation Route:** functions/scripts that inspect the supplied text and return source-linked candidate details
+- **Integration approach:** direct integration
+- **Role in this task:** Supports Locate assignment references, Interpret due-date evidence, Identify status evidence, and Reconcile conflicting details.
+- **Task timeout:** 10 minutes per task run, including inference requests, tool calls, retries, and waiting.
+- **Maximum retries:** 1 additional attempt.
+- **Retry only when:** Retry once after a 10-second wait only for a transient execution error or timeout before any output is returned. Do not retry after partial or uncertain output; record the status and hand the case to the BUS 4498 student so evidence is not silently replaced.
+- **On timeout, exhausted retries, or an error that cannot be retried:** Record `extraction_status: unresolved`, preserve any returned error or partial evidence, and route the case to T4 — Ask student to clarify details or T5 — Mark item unclear for human review. Do not continue to T3 as if the extraction succeeded.
 
 ## 4. How the Agent Should Reason
 
@@ -65,4 +90,3 @@ Return an extraction finding for each provided assignment item containing:
 - the source evidence used for each finding;
 - any conflict, uncertainty, or missing-detail note; and
 - the recommended next workflow destination: T3 — Add or update task record, T4 — Ask student to clarify details, or T5 — Mark item unclear for human review.
-Add inference configuration and tool boundaries
