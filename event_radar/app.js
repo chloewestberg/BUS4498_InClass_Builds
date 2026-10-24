@@ -21,7 +21,10 @@
   // The website may read only these columns (the menu), never the raw announcement or moderator notes.
   var PUBLIC_COLUMNS = [
     "id", "title", "club", "event_date", "start_time", "end_time", "place_name", "place_detail", "cost", "free_food", "summary",
+    "flyer_url", // from Stage 7
   ].join(",");
+  var FLYER_PREFIX = "/storage/v1/object/public/flyers/";
+  var MAX_PHOTO = 5 * 1024 * 1024;
 
   /* ---------- small helpers ---------- */
   function el(tag, cls, text) {
@@ -39,6 +42,19 @@
     if (!t) return "";
     var p = t.split(":"), h = +p[0], ap = h >= 12 ? "PM" : "AM";
     return (h % 12 || 12) + ":" + p[1] + " " + ap;
+  }
+
+  // Show a flyer only when the link points to this project's flyers bucket.
+  function flyerImage(ev) {
+    if (!ev.flyer_url) return null;
+    var url;
+    try { url = new URL(ev.flyer_url); } catch (_) { return null; }
+    if (url.origin !== new URL(baseUrl).origin || url.pathname.indexOf(FLYER_PREFIX) !== 0) return null;
+    var img = el("img", "flyer");
+    img.src = url.href;
+    img.alt = "Flyer for " + (ev.title || "this event");
+    img.loading = "lazy";
+    return img;
   }
 
   /* ---------- one event card: date badge, details, and (from Stage 7) the flyer ---------- */
@@ -67,6 +83,8 @@
     if (tags.childNodes.length) body.appendChild(tags);
     if (extra) body.appendChild(extra);
     li.appendChild(body);
+    var flyer = flyerImage(ev);
+    if (flyer) li.appendChild(flyer);
     return li;
   }
 
@@ -110,6 +128,9 @@
   $("postForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var form = $("postForm"), btn = $("postBtn");
+    var photo = $("flyer").files[0];
+    if (photo && photo.size > MAX_PHOTO) { showResult({ ok: false, message: "The photo is too big. Use a JPG or PNG under 5 MB." }); return; }
+    if (photo && !/^image\/(jpeg|png)$/.test(photo.type)) { showResult({ ok: false, message: "The photo must be a JPG or PNG." }); return; }
     btn.disabled = true;
     btn.textContent = "The agent is reading it…";
     // The publishable key goes on the apikey header only (never as an Authorization bearer token).
