@@ -26,8 +26,8 @@
     <form id="postForm">
       <label for="announcement">Announcement <span class="hint">Paste the Instagram caption, group-chat message, or flyer text.</span></label>
       <textarea id="announcement" name="announcement" rows="6" maxlength="2000" required placeholder="Board Game Guild: Game Night! Thursday, 7 to 10 pm in the University Union, Room 220. Free pizza!"></textarea>
-      <label for="flyer">Flyer photo <span class="hint">Optional. A JPG or PNG up to 5 MB. Posts with a photo are checked by a moderator first.</span></label>
-      <input type="file" id="flyer" name="flyer" accept="image/jpeg,image/png">
+      <label for="flyer">Flyer photo <span class="hint">Optional. JPG or PNG, up to 5 MB. Posts with a photo wait for a moderator.</span></label>
+      <input id="flyer" name="flyer" type="file" accept="image/jpeg,image/png">
       <button type="submit" id="postBtn">Post it</button>
     </form>
     <div id="postResult" class="result" role="status" aria-live="polite" hidden></div>
@@ -41,6 +41,29 @@
     <p id="boardStatus" class="muted" role="status"></p>
     <ul id="board" class="board"></ul>
 
+    <!-- Stage 8: moderators sign in here to approve or reject waiting posts. -->
+    <details class="card mod" id="modPanel">
+      <summary>Moderator sign-in</summary>
+      <div>
+        <form id="signInForm">
+          <label for="modEmail">Email</label>
+          <input id="modEmail" type="email" autocomplete="username" required>
+          <label for="modPassword">Password</label>
+          <input id="modPassword" type="password" autocomplete="current-password" required>
+          <button type="submit" id="signInBtn">Sign in</button>
+          <p id="signInStatus" class="muted" role="status"></p>
+        </form>
+        <div id="modArea" hidden>
+          <div class="board-head">
+            <p id="modWho" class="muted"></p>
+            <button type="button" class="ghost" id="signOutBtn">Sign out</button>
+          </div>
+          <h3>Waiting for review</h3>
+          <p id="queueStatus" class="muted" role="status"></p>
+          <ul id="queue" class="board"></ul>
+        </div>
+      </div>
+    </details>
   </section>
 </main>
 

@@ -21,10 +21,8 @@
   // The website may read only these columns (the menu), never the raw announcement or moderator notes.
   var PUBLIC_COLUMNS = [
     "id", "title", "club", "event_date", "start_time", "end_time", "place_name", "place_detail", "cost", "free_food", "summary",
-    "flyer_url", // from Stage 7
+    "flyer_url",
   ].join(",");
-  var FLYER_PREFIX = "/storage/v1/object/public/flyers/";
-  var MAX_PHOTO = 5 * 1024 * 1024;
 
   /* ---------- small helpers ---------- */
   function el(tag, cls, text) {
@@ -42,19 +40,6 @@
     if (!t) return "";
     var p = t.split(":"), h = +p[0], ap = h >= 12 ? "PM" : "AM";
     return (h % 12 || 12) + ":" + p[1] + " " + ap;
-  }
-
-  // Show a flyer only when the link points to this project's flyers bucket.
-  function flyerImage(ev) {
-    if (!ev.flyer_url) return null;
-    var url;
-    try { url = new URL(ev.flyer_url); } catch (_) { return null; }
-    if (url.origin !== new URL(baseUrl).origin || url.pathname.indexOf(FLYER_PREFIX) !== 0) return null;
-    var img = el("img", "flyer");
-    img.src = url.href;
-    img.alt = "Flyer for " + (ev.title || "this event");
-    img.loading = "lazy";
-    return img;
   }
 
   /* ---------- one event card: date badge, details, and (from Stage 7) the flyer ---------- */
@@ -83,8 +68,13 @@
     if (tags.childNodes.length) body.appendChild(tags);
     if (extra) body.appendChild(extra);
     li.appendChild(body);
-    var flyer = flyerImage(ev);
-    if (flyer) li.appendChild(flyer);
+    if (ev.flyer_url && ev.flyer_url.indexOf(baseUrl + "/storage/v1/object/public/flyers/") === 0) {
+      var img = el("img", "flyer");
+      img.src = ev.flyer_url;
+      img.alt = "Flyer for " + (ev.title || "this event");
+      img.loading = "lazy";
+      li.appendChild(img);
+    }
     return li;
   }
 
@@ -129,8 +119,7 @@
     e.preventDefault();
     var form = $("postForm"), btn = $("postBtn");
     var photo = $("flyer").files[0];
-    if (photo && photo.size > MAX_PHOTO) { showResult({ ok: false, message: "The photo is too big. Use a JPG or PNG under 5 MB." }); return; }
-    if (photo && !/^image\/(jpeg|png)$/.test(photo.type)) { showResult({ ok: false, message: "The photo must be a JPG or PNG." }); return; }
+    if (photo && photo.size > 5 * 1024 * 1024) { showResult({ ok: false, message: "The photo must be 5 MB or smaller." }); return; }
     btn.disabled = true;
     btn.textContent = "The agent is reading it…";
     // The publishable key goes on the apikey header only (never as an Authorization bearer token).
@@ -153,6 +142,95 @@
     .then(function (d) { if (d && d.ai) $("aiNote").textContent = "Event cards are drafted by an AI agent, " + d.ai + ", and checked against the posting rules."; })
     .catch(function () { /* the website still works without this note */ });
 
+  /* ---------- Stage 8: moderator sign-in ---------- */
+  // Signed in, a moderator may read every post and change only its review columns (see the Stage 8 migration).
+  var REVIEW_COLUMNS = PUBLIC_COLUMNS + ",status,status_reason,announcement,note_for_moderator,created_at";
+  var moderator = null;
+
+  function showModerator(user) {
+    moderator = user;
+    $("signInForm").hidden = Boolean(user);
+    $("modArea").hidden = !user;
+    if (user) {
+      $("modWho").textContent = "Signed in as " + (user.email || "a moderator");
+      loadQueue();
+    } else {
+      $("queue").textContent = "";
+    }
+  }
+
+  function loadQueue() {
+    $("queueStatus").textContent = "Loading…";
+    db.from("events").select(REVIEW_COLUMNS).eq("status", "waiting")
+      .order("created_at", { ascending: true })
+      .then(function (res) {
+        var list = $("queue");
+        list.textContent = "";
+        if (res.error) { $("queueStatus").textContent = "Couldn't load waiting posts: " + res.error.message; return; }
+        res.data.forEach(function (ev) { list.appendChild(card(ev, reviewBox(ev))); });
+        if (!res.data.length) list.appendChild(el("li", "empty", "Nothing is waiting. Nice work!"));
+        $("queueStatus").textContent = res.data.length ? res.data.length + (res.data.length === 1 ? " post waiting" : " posts waiting") : "";
+      });
+  }
+
+  function reviewBox(ev) {
+    var box = el("div", "review");
+    box.appendChild(el("p", "why", "Why it's waiting: " + (ev.status_reason || "No reason given.")));
+    if (ev.note_for_moderator) box.appendChild(el("p", null, "Note from the AI: " + ev.note_for_moderator));
+    box.appendChild(el("p", "original", ev.announcement));
+    var actions = el("p", "actions");
+    var approve = el("button", null, "Approve");
+    var reject = el("button", "ghost", "Reject");
+    approve.type = reject.type = "button";
+    approve.addEventListener("click", function () { review(ev, "published", [approve, reject], box); });
+    reject.addEventListener("click", function () { review(ev, "rejected", [approve, reject], box); });
+    actions.appendChild(approve);
+    actions.appendChild(reject);
+    box.appendChild(actions);
+    return box;
+  }
+
+  function review(ev, status, buttons, box) {
+    buttons.forEach(function (b) { b.disabled = true; });
+    db.from("events")
+      .update({ status: status, reviewed_at: new Date().toISOString(), reviewed_by: (moderator && moderator.email) || "" })
+      .eq("id", ev.id).eq("status", "waiting")
+      .select("id")
+      .then(function (res) {
+        if (res.error) {
+          var msg = res.error.code === "23505"
+            ? "Another live post already has the same date, start time, and place, so this one can't be approved."
+            : "Couldn't save that: " + res.error.message;
+          box.appendChild(el("p", "why", msg));
+          buttons.forEach(function (b) { b.disabled = false; });
+          return;
+        }
+        if (!res.data || !res.data.length) box.appendChild(el("p", "why", "Someone already reviewed this post."));
+        loadQueue();
+        if (status === "published") loadBoard();
+      });
+  }
+
+  $("signInForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = $("signInBtn");
+    btn.disabled = true;
+    $("signInStatus").textContent = "Signing in…";
+    db.auth.signInWithPassword({ email: $("modEmail").value.trim(), password: $("modPassword").value })
+      .then(function (res) {
+        $("modPassword").value = "";
+        if (res.error) { $("signInStatus").textContent = "That email and password didn't work."; return; }
+        $("signInStatus").textContent = "";
+      })
+      .then(function () { btn.disabled = false; });
+  });
+  $("signOutBtn").addEventListener("click", function () { db.auth.signOut(); });
+
+  db.auth.onAuthStateChange(function (_event, session) {
+    var user = session ? session.user : null;
+    // Wait a moment so database calls don't run inside the sign-in callback.
+    setTimeout(function () { showModerator(user); }, 0);
+  });
 
   loadBoard();
 })();
