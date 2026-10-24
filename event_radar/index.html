@@ -26,6 +26,8 @@
     <form id="postForm">
       <label for="announcement">Announcement <span class="hint">Paste the Instagram caption, group-chat message, or flyer text.</span></label>
       <textarea id="announcement" name="announcement" rows="6" maxlength="2000" required placeholder="Board Game Guild: Game Night! Thursday, 7 to 10 pm in the University Union, Room 220. Free pizza!"></textarea>
+      <label for="flyer">Flyer photo <span class="hint">Optional. A JPG or PNG up to 5 MB. Posts with a photo are checked by a moderator first.</span></label>
+      <input type="file" id="flyer" name="flyer" accept="image/jpeg,image/png">
       <button type="submit" id="postBtn">Post it</button>
     </form>
     <div id="postResult" class="result" role="status" aria-live="polite" hidden></div>
