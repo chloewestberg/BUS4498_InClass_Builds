@@ -14,8 +14,6 @@ const OPENAI_MODEL = "gpt-6-luna";
 const DAILY_LIMIT = 100; // spending guard: at most this many posts in any 24 hours
 const MAX_TEXT = 2000;
 const DAYS_AHEAD = 60;
-const MAX_PHOTO = 5 * 1024 * 1024; // 5 MB, same as the flyers bucket limit
-const BUCKET = "flyers";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -136,18 +134,6 @@ How to fill the card:
 - Use OFF_CAMPUS for a place that is clearly off campus, and leave place_code empty when you can't tell.
 - List every rule the post breaks under rule_flags, and say what a moderator should check in note_for_moderator.
 - Leave personal phone numbers, personal emails, and payment handles out of the title and summary (rule R6).`;
-}
-
-// Check the flyer photo: JPG or PNG only, up to 5 MB. The file's first bytes decide the type,
-// not the name or the type the browser claims.
-async function readPhoto(file: File): Promise<Photo> {
-  if (file.size > MAX_PHOTO) throw new PostError("The photo is too big. Use a JPG or PNG under 5 MB.");
-  if (file.type && !["image/jpeg", "image/png"].includes(file.type)) throw new PostError("The photo must be a JPG or PNG.");
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const isPng = bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
-  const isJpg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  if (!isPng && !isJpg) throw new PostError("The photo must be a JPG or PNG.");
-  return { bytes, type: isPng ? "image/png" : "image/jpeg" };
 }
 
 function userText(announcement: string, hasPhoto: boolean): string {
@@ -282,9 +268,6 @@ Deno.serve(async (req) => {
     } else {
       const form = await req.formData();
       announcement = String(form.get("announcement") ?? "");
-      // From Stage 7: an optional flyer photo.
-      const flyer = form.get("flyer");
-      if (flyer instanceof File && flyer.size > 0) photo = await readPhoto(flyer);
     }
     announcement = announcement.trim();
     if (!announcement) throw new PostError("Paste the announcement text first.");
@@ -345,21 +328,6 @@ Deno.serve(async (req) => {
       throw new PostError("The database couldn't save this post. Check the function logs.", 500);
     }
 
-    // From Stage 7: save the flyer as <post id>.png or .jpg in the flyers bucket, then store its public link.
-    if (photo && saved) {
-      const path = `${saved.id}.${photo.type === "image/png" ? "png" : "jpg"}`;
-      const { error: uploadError } = await db.storage.from(BUCKET)
-        .upload(path, photo.bytes, { contentType: photo.type, upsert: false });
-      if (uploadError) {
-        console.error("Flyer upload failed", uploadError);
-        reasons.push("The post was saved, but the photo couldn't be. Try posting the photo again later.");
-      } else {
-        const flyerUrl = db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-        const { error: linkError } = await db.from("events").update({ flyer_url: flyerUrl }).eq("id", saved.id);
-        if (linkError) console.error("Saving the flyer link failed", linkError);
-        else saved.flyer_url = flyerUrl;
-      }
-    }
 
     return reply(200, { ok: true, status, message: MESSAGES[status], reasons, event: saved });
   } catch (err) {
