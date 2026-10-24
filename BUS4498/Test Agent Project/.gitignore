@@ -1,0 +1,3 @@
+# Keep local API credentials out of version control.
+api_keys/*.txt
+api keys/*.txt

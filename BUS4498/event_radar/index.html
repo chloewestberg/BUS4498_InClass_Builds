@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Club Event Radar</title>
+<meta name="description" content="Campus club events, posted by club officers and checked by an AI agent.">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <p class="kicker">BUS 4498 · Campus clubs</p>
+    <h1>Club Event Radar</h1>
+    <p class="lede">Every club event on campus in one place. Club officers paste an announcement, and an AI agent turns it into a clean event card and checks the posting rules.</p>
+    <ul class="badges">
+      <li>Posted by club officers</li>
+      <li>Checked by an AI agent</li>
+      <li>🍕 Free food tagged</li>
+    </ul>
+  </div>
+</header>
+
+<main class="wrap layout">
+  <section class="card post" aria-labelledby="post-heading">
+    <h2 id="post-heading">Post an event</h2>
+    <form id="post-form">
+      <label for="announcement">Your club’s announcement
+        <span class="hint">Paste it the way you’d post it in a group chat. Include the date, start time, and place.</span>
+      </label>
+      <textarea id="announcement" name="announcement" maxlength="2000" required
+        placeholder="Board Game Guild: Game Night! Thursday, 7 to 10 pm in the UU, Room 220. Free pizza!"></textarea>
+      <button type="submit" id="post-button">Post event</button>
+    </form>
+    <div id="result" hidden></div>
+  </section>
+
+  <section class="board-section" aria-labelledby="board-heading">
+    <div class="board-head">
+      <h2 id="board-heading">Upcoming events</h2>
+      <button type="button" class="ghost" id="refresh">Refresh</button>
+    </div>
+    <div class="filters" role="group" aria-label="Filter events">
+      <button type="button" class="chip" data-filter="all" aria-pressed="true">All events</button>
+      <button type="button" class="chip" data-filter="food" aria-pressed="false">🍕 Free food</button>
+    </div>
+    <ul class="board" id="board" aria-live="polite">
+      <li class="empty">Loading events…</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>A practice project for BUS 4498. Not an official Cal Poly or ASI website.</p>
+</footer>
+
+</body>
+</html>

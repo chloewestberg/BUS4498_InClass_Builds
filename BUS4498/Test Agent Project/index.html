@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101522" />
+    <title>Crate &amp; Curious — Claude icon sorter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Crate and Curious home">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span>crate<span class="brand-amp">&amp;</span>curious</span>
+        </a>
+        <div class="model-pill"><span class="pulse-dot"></span><span id="model-label">Claude sorter</span></div>
+      </header>
+
+      <section class="hero" aria-labelledby="page-title">
+        <div class="eyebrow"><span>✺</span> a tiny home for big feelings</div>
+        <h1 id="page-title">Find your <em>cozy</em> crew.</h1>
+        <p class="hero-copy">Give the little icons a keyword and Claude will gather the ones that belong together.</p>
+        <form id="search-form" class="search-bar">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <label class="sr-only" for="keyword">What are you looking for?</label>
+          <input id="keyword" name="keyword" type="search" autocomplete="off" placeholder="Try “cozy”, “space”, or “rain”..." maxlength="80" />
+          <button type="submit" id="search-button"><span>Search</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+        </form>
+        <div class="suggestions" aria-label="Search suggestions">
+          <span>Try:</span>
+          <button type="button" data-suggestion="cozy">cozy</button>
+          <button type="button" data-suggestion="space">space</button>
+          <button type="button" data-suggestion="sunny">sunny</button>
+          <button type="button" data-suggestion="ocean">ocean</button>
+        </div>
+        <p id="status-message" class="status-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="crate-stage" aria-labelledby="crate-heading">
+        <div class="stage-label">
+          <div><span class="label-kicker">THE LITTLE</span><h2 id="crate-heading">sorted crate</h2></div>
+          <span id="crate-count" class="count-badge">0 inside</span>
+        </div>
+        <div class="crate" id="crate" aria-live="polite">
+          <div class="crate-highlight"></div>
+          <div class="crate-plank plank-one"></div>
+          <div class="crate-plank plank-two"></div>
+          <div class="crate-plank plank-three"></div>
+          <div class="crate-handle handle-left"></div><div class="crate-handle handle-right"></div>
+          <div id="crate-items" class="crate-items">
+            <div class="empty-crate"><span class="empty-icon">✧</span><span>your crate is waiting</span><small>Search for a feeling to fill it up</small></div>
+          </div>
+          <div class="crate-rim"></div>
+        </div>
+      </section>
+
+      <section class="collection-section" aria-labelledby="collection-heading">
+        <div class="collection-header"><div><span class="label-kicker">EVERYONE ELSE</span><h2 id="collection-heading">the collection <span id="collection-count">24</span></h2></div><span class="collection-note">drag your eyes around ↓</span></div>
+        <div id="collection" class="collection" aria-label="Icon collection"></div>
+      </section>
+
+      <footer class="footer"><span>made for curious little searches</span><span class="footer-spark">✦</span><span id="mode-label">Claude-powered · local server</span></footer>
+    </main>
+  </body>
+</html>
